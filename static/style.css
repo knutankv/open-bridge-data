@@ -1,0 +1,52 @@
+* {
+    font-size: 12pt;
+}
+
+body {
+    color: black;
+    font-family:'Source Sans Pro';
+    text-align: left;
+    font-size:12pt;
+    position:relative;
+    }
+    
+h1{
+    font-size: 22pt;
+    margin-top:0.5em;
+    margin-bottom:0.7em;
+    color: black;	
+}
+
+h2{
+    font-size: 18pt;
+    margin-top:1em;
+    margin-bottom:0.2em;
+    color: black;
+    }
+    
+._dash-undo-redo {
+    display: none;
+  }
+
+  .plot_wrapper{
+    width: 100%;
+    min-height: 400px;
+    vertical-align: middle;
+}
+
+.plot {
+    width: 50%;
+    float:left;
+    min-height: 400px;
+    overflow:hidden;
+}
+
+.sac{
+    width: 40%;
+    margin-left:50px;
+    display: inline-block;
+}
+
+.downloadstuff{
+    position:relative;  
+}
