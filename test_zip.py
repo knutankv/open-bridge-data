@@ -6,9 +6,9 @@ Created on Thu Sep 24 12:20:29 2020
 """
 import glob
 import zipfile
-path = 'C:/Users/knutankv/Downloads/*.zip'
+path = 'C:/Users/knutankv/Downloads/**/*.zip'
 
-myzips = glob.glob(path)
+myzips = glob.glob(path, recursive=True)
 bad_zips = []
 for z in myzips:
   try:
