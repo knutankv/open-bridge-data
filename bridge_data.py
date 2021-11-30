@@ -9,23 +9,35 @@ import plotly.graph_objs as go
 import numpy as np
 from flask import send_from_directory
 from scipy import signal
-# ------------- PRE --------------
-recpath = '//iktnimbus03.ivt.ntnu.no/ProcessedData_Bergsoysund/Test/' 
+import requests
 
-files = listdir(recpath)
-files.remove('dash-stat-bergsoysund.mat')
-statistics = pybd.loadrec(recpath + 'dash-stat-bergsoysund.mat', name='statistics', output_format='dict')
 
-sensors_stat = list(statistics['sensor'].keys())
+def temp_download(url, save_path):
+    r = requests.get(url)
+    open(save_path, 'wb').write(r.content)
 
 # ------------ INITIALIZE LAYOUT ------------
-app = dash.Dash()
+app = dash.Dash(__name__)
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
+server = app.server
+
+# ------------- PRE --------------
+buffered_data = True    #if url path is used (not local storage)
+temp_path = 'temp.mat'
+
+# dash_recpath = '//iktnimbus03.kt.ntnu.no/ProcessedData_Bergsoysund/DataSharing/2/' 
+# dash_recpath = './recordings/'
+dash_recpath = 'https://folk.ntnu.no/knutankv/recordings/bergsoysund/'
+download_path = 'https://sandbox.zenodo.org/record/916289/files/{filename}.mat'
+
+statistics = pybd.loadrec('stats.mat', name='statistics', output_format='dict')
+sensors_stat = list(statistics['sensor'].keys())
+files = statistics['recording']
 
 # ------------ LAYOUT ------------
 app.layout = html.Div(className='main', children=
-    [   html.Div(id='data-cache', style={'display': 'none'}),        
+    [   html.Div(id='buffered_file', style={'display': 'none'}, title=''),        
         html.Link(
             href='/static/style.css',
             rel='stylesheet'
@@ -35,8 +47,8 @@ app.layout = html.Div(className='main', children=
         rel='stylesheet'),
 
         html.Img(src='./static/logo.png', style={'width': '250px', 'margin':'1em'}),
-
-# Statistics and time series selection
+        
+        # Statistics and time series selection
         html.H2('Select time series'),
         html.Div(children=[
                 html.Div(
@@ -44,7 +56,7 @@ app.layout = html.Div(className='main', children=
                             id = 'stat-plot',
                             figure = go.Figure(
                                 data=[
-                                    go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][sensors_stat[0]]['std'][:,0])
+                                    go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][sensors_stat[0]]['std'][:,0], hovertext=files)
                                     ],
                                 layout = go.Layout(xaxis={'title': 'Recording number'}, yaxis={'tickformat': '.1e'}, height=400)
                             )
@@ -91,7 +103,7 @@ app.layout = html.Div(className='main', children=
         ),
 
         # html.Button('Load time series', id='load-button'), 
-# Time series study
+        # Time series study
         html.H2(children=['Study time series'], className='h2'),
         html.Div(children=[
                 html.Div(
@@ -137,20 +149,45 @@ app.layout = html.Div(className='main', children=
                             dcc.Checklist(
                                 id='detrend-checkbox',
                                 options= [{'label': 'Detrend (time history)', 'value': 1}],
-                                values =[1]
-                            )],
+                                value=[1]
+                            ) ],
                         style={'margin-top':'1em', 'margin-bottom': '1em'}   
-                        ),   
+                        ),  
 
-                        html.H3('Selection'),
+                        html.H4('Welch estimation'),
                         html.Div(children=[
-                            dcc.Checklist(
-                                options= [{'label': 'Mark recording for download', 'value': 'mark'}],
-                                values =[]
-                            )],
-                        style={'margin-bottom':'1em'}   
-                        ),   
 
+                            html.Div(children=[
+                                dcc.Slider(
+                                    id='nfft-slider',
+                                    min=0,
+                                    max=11-6,
+                                    step=None,
+                                    marks={(n-6):str(int(2**n)) for n in [6,7,8,9,10,11]},
+                                    value=3
+                                )
+                                ], style={'width':'30em'}),
+                            html.Div(children=[
+                                dcc.Slider(
+                                    id='zp-slider',
+                                    min=1,
+                                    max=8,
+                                    step=1,
+                                    marks={n:str(n) for n in range(1,8+1)},
+                                    value=2
+                            )
+                            ], style={'width':'30em'})],        
+                        style={'margin-top':'1em', 'margin-bottom': '1em'}   
+                        ),                     
+                            
+                        html.H3('Selection')
+                        # html.Div(children=[
+                        #     dcc.Checklist(
+                        #         options= [{'label': 'Mark recording for download', 'value': 'mark'}],
+                        #         value =['mark']
+                        #     )],
+                        # style={'margin-bottom':'1em'})
+                         
                     ], className='sac'
                 )
         ], className ='plot_wrapper'
@@ -159,22 +196,7 @@ app.layout = html.Div(className='main', children=
 
 # Download stuff
 html.Div(children=[
-            html.Div(children=[
-                    html.H2('Download'),
-                    dcc.RadioItems(
-                        options=[
-                            {'label': '20 Hz (low samplerate)', 'value': 'low'},
-                            {'label': '200 Hz (high samplerate)', 'value': 'high'}
-                        ],
-                        value='low',
-                        labelStyle={'display': 'inline-block'}
-                    )],
-                style={'margin-bottom': '1em'}
-            ),
-            
             html.Button('Download', id='download-button'),  
-            html.Button('Download all marked', id='download-all-button'),
-
         ],  className = 'downloadstuff'
     )
 ])
@@ -192,7 +214,7 @@ def update_figure_stat(selected_sensor, selected_component, stat_quantity):
     componentix = statistics['sensor'][selected_sensor]['component_names'].index(selected_component)
     figout = go.Figure(
                             data=[
-                                go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][selected_sensor][stat_quantity][:,componentix])
+                                go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][selected_sensor][stat_quantity][:,componentix], hovertext=files)
                                 ],
                             layout = go.Layout(xaxis={'title': 'Recording number'},  yaxis={'tickformat': '.1e'}, height=400)
                         )
@@ -200,14 +222,28 @@ def update_figure_stat(selected_sensor, selected_component, stat_quantity):
 
 # Sensor data plot
 @app.callback(
-    dash.dependencies.Output('sensor-data-plot', 'figure'),        # output from next function
+    [dash.dependencies.Output('sensor-data-plot', 'figure'),
+     dash.dependencies.Output('buffered_file', 'title')],        # output from next function
     [dash.dependencies.Input('sensor-dropdown', 'value'),
     dash.dependencies.Input('component-dropdown', 'value'),
     dash.dependencies.Input('file-dropdown', 'value'), 
-    dash.dependencies.Input('detrend-checkbox', 'values'),
-    dash.dependencies.Input('psd-radio', 'value')])      # specified input given to next function
-def update_figure(selected_sensor, selected_component, selected_file, detrend_state, domain):
-    recording = pybd.loadrec(recpath+selected_file, output_format='struct')
+    dash.dependencies.Input('detrend-checkbox', 'value'),
+    dash.dependencies.Input('psd-radio', 'value'),
+    dash.dependencies.Input('nfft-slider', 'value'),
+    dash.dependencies.Input('zp-slider', 'value'),
+    dash.dependencies.Input('buffered_file', 'title')])      # specified input given to next function
+
+def update_figure(selected_sensor, selected_component, selected_file, detrend_state, domain, nfft, zp, buffered_file):
+    if buffered_data:
+        tot_path = temp_path + ''
+        if selected_file != buffered_file:
+            temp_download(dash_recpath + selected_file, temp_path)
+            buffered_file = selected_file + ''
+    else:
+        tot_path = dash_recpath + selected_file
+    
+        
+    recording = pybd.loadrec(tot_path, output_format='struct')
     componentix = statistics['sensor'][selected_sensor]['component_names'].index(selected_component)
 
     try:
@@ -218,9 +254,8 @@ def update_figure(selected_sensor, selected_component, selected_file, detrend_st
             y = signal.detrend(y)
 
         if domain == 'freq':
-            n_windows = 20
             fs = 1/(x[1]-x[0])
-            x, y = signal.welch(signal.detrend(y), fs, nperseg=len(x)/n_windows)
+            x, y = signal.welch(signal.detrend(y), fs, nperseg=2**(nfft+6), nfft=zp*2**(nfft+6))
             layout = go.Layout(xaxis={'title': 'Frequency [Hz]'}, yaxis={'tickformat': '.1e'})
         else:
             layout = go.Layout(xaxis={'title': 'Time [s]'}, yaxis={'tickformat': '.1e'})
@@ -235,8 +270,7 @@ def update_figure(selected_sensor, selected_component, selected_file, detrend_st
     except:
         figout = go.Figure(data=[go.Scatter(x=None, y=None)])
 
-
-    return figout
+    return figout, buffered_file
 
 @app.callback(
     dash.dependencies.Output('file-dropdown', 'value'),
@@ -288,6 +322,15 @@ def update_component_dropdown_stat(selected_sensor):
 def update_date_label(selected_file):
     return 'Recording start time: %s' % (selected_file.split('M')[1].split('.')[0][1:-3])
  
+# @app.callback(
+#     dash.dependencies.Output('download-button', 'children'),
+#     [dash.dependencies.Input('file-dropdown', 'value')]
+# def update_output(filename):
+#     return 'The input value was "{}" and the button has been clicked {} times'.format(
+#         value,
+#         n_clicks
+#     )
+#  download_path.format(filename=download_path)
 
 # ----------- SERVE CSS --------------
 @app.server.route('/static/<recpath>')
