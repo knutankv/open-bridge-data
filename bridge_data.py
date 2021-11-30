@@ -71,8 +71,6 @@ app.layout = html.Div(className='main', children=
                             value = files[0]
                         ),
                         
-                        html.Div(id='starttime-label', style={'margin-top': '0.5em', 'margin-bottom': '1em'}), 
-
                         dcc.Dropdown(
                             id='sensor-dropdown-stat',
                             options = [{'label':name, 'value':name} for name in sensors_stat],
@@ -315,13 +313,6 @@ def update_component_dropdown_stat(selected_sensor):
     updated_component_options = [{'label':name, 'value':name} for name in statistics['sensor'][selected_sensor]['component_names']]
     return updated_component_options
 
-# Date label
-@app.callback(
-    dash.dependencies.Output('starttime-label', 'children'),        # output from next function
-    [dash.dependencies.Input('file-dropdown', 'value')])      # specified input given to next function
-def update_date_label(selected_file):
-    return 'Recording start time: %s' % (selected_file.split('M')[1].split('.')[0][1:-3])
- 
 # @app.callback(
 #     dash.dependencies.Output('download-button', 'children'),
 #     [dash.dependencies.Input('file-dropdown', 'value')]
