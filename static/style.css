@@ -1,26 +1,40 @@
 * {
-    font-size: 12pt;
+    font-size: 11pt;
 }
 
 body {
     color: black;
     font-family:'Source Sans Pro';
     text-align: left;
-    font-size:12pt;
+    font-size:11pt;
     position:relative;
     }
     
 h1{
-    font-size: 22pt;
-    margin-top:0.5em;
-    margin-bottom:0.7em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    font-size: 20pt;
     color: black;	
 }
 
 h2{
-    font-size: 18pt;
-    margin-top:1em;
-    margin-bottom:0.2em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    font-size: 16pt;
+    color: black;
+    }
+    
+h3{
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-size: 14pt;
+    color: black;
+    }
+    
+h4{
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    font-size: 12pt;
     color: black;
     }
     
@@ -28,16 +42,16 @@ h2{
     display: none;
   }
 
-  .plot_wrapper{
+.plot_wrapper{
     width: 100%;
-    min-height: 400px;
+    height: 300px;
     vertical-align: middle;
 }
 
 .plot {
     width: 50%;
     float:left;
-    min-height: 400px;
+    height: 300px;
     overflow:hidden;
 }
 
@@ -50,3 +64,6 @@ h2{
 .downloadstuff{
     position:relative;  
 }
+
+.main{
+    max-height:100%}

@@ -2,7 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
-import pybd
+from opyndata import data_import
 from os import listdir
 import os
 import plotly.graph_objs as go
@@ -28,10 +28,11 @@ temp_path = 'temp.mat'
 
 # dash_recpath = '//iktnimbus03.kt.ntnu.no/ProcessedData_Bergsoysund/DataSharing/2/' 
 # dash_recpath = './recordings/'
-dash_recpath = 'https://folk.ntnu.no/knutankv/recordings/bergsoysund/'
+# dash_recpath = 'https://folk.ntnu.no/knutankv/recordings/bergsoysund/'
+dash_recpath = 'https://sandbox.zenodo.org/api/files/1ac67e36-1774-41be-ba0e-71c167494f61/'
 download_path = 'https://sandbox.zenodo.org/record/916289/files/{filename}.mat'
 
-statistics = pybd.loadrec('stats.mat', name='statistics', output_format='dict')
+statistics = data_import.loadrec('stats.mat', name='statistics', output_format='dict')
 sensors_stat = list(statistics['sensor'].keys())
 files = statistics['recording']
 
@@ -47,7 +48,7 @@ app.layout = html.Div(className='main', children=
         rel='stylesheet'),
 
         html.Img(src='./static/logo.png', style={'width': '250px', 'margin':'1em'}),
-        
+
         # Statistics and time series selection
         html.H2('Select time series'),
         html.Div(children=[
@@ -58,7 +59,11 @@ app.layout = html.Div(className='main', children=
                                 data=[
                                     go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][sensors_stat[0]]['std'][:,0], hovertext=files)
                                     ],
-                                layout = go.Layout(xaxis={'title': 'Recording number'}, yaxis={'tickformat': '.1e'}, height=400)
+                                layout = go.Layout(xaxis={'title': 'Recording number'}, 
+                                                   yaxis={'tickformat': '.1e'}, 
+                                                   height=300,  
+                                                   margin=dict(l=0,r=0,t=5,b=0))
+
                             )
                         ),
                     className='plot'
@@ -70,15 +75,15 @@ app.layout = html.Div(className='main', children=
                             options = [{'label':name, 'value':name} for name in files],
                             value = files[0]
                         ),
-                        
+                        html.Div(style={'margin-top': '0.5em', 'margin-bottom': '1em'}),    
+                            
                         dcc.Dropdown(
                             id='sensor-dropdown-stat',
                             options = [{'label':name, 'value':name} for name in sensors_stat],
                             value = sensors_stat[0],
                         ),
                         
-                        html.Div(id='sensor-type-stat', style={'margin-top': '0.5em', 'margin-bottom': '1em'}),    
-                            
+  
                         dcc.Dropdown(
                             id='component-dropdown-stat',
                             options=[{'label':name, 'value':name} for name in statistics['sensor'][sensors_stat[0]]['component_names']],
@@ -100,7 +105,6 @@ app.layout = html.Div(className='main', children=
         ], className ='plot_wrapper'
         ),
 
-        # html.Button('Load time series', id='load-button'), 
         # Time series study
         html.H2(children=['Study time series'], className='h2'),
         html.Div(children=[
@@ -111,7 +115,7 @@ app.layout = html.Div(className='main', children=
                                 data=[
                                     go.Scatter(x=[], y=[])
                                     ],
-                                layout = go.Layout(xaxis={'title': 'Time [s]'}, height=400)
+                                layout = go.Layout(xaxis={'title': 'Time [s]'}, height=300, margin=dict(l=0,r=0,t=20,b=0))
                             )
                         ),
                     className='plot'
@@ -124,8 +128,7 @@ app.layout = html.Div(className='main', children=
                             value = sensors_stat[0],
                         ),
                         
-                        html.Div(id='sensor-type', style={'margin-top': '0.5em', 'margin-bottom': '1em'}),    
-                            
+
                         dcc.Dropdown(
                             id='component-dropdown',
                             options = [{'label':name, 'value':name} for name in statistics['sensor'][sensors_stat[0]]['component_names']],
@@ -148,8 +151,7 @@ app.layout = html.Div(className='main', children=
                                 id='detrend-checkbox',
                                 options= [{'label': 'Detrend (time history)', 'value': 1}],
                                 value=[1]
-                            ) ],
-                        style={'margin-top':'1em', 'margin-bottom': '1em'}   
+                            ) ]
                         ),  
 
                         html.H4('Welch estimation'),
@@ -164,7 +166,7 @@ app.layout = html.Div(className='main', children=
                                     marks={(n-6):str(int(2**n)) for n in [6,7,8,9,10,11]},
                                     value=3
                                 )
-                                ], style={'width':'30em'}),
+                                ], style={'width':'100%'}),
                             html.Div(children=[
                                 dcc.Slider(
                                     id='zp-slider',
@@ -174,30 +176,22 @@ app.layout = html.Div(className='main', children=
                                     marks={n:str(n) for n in range(1,8+1)},
                                     value=2
                             )
-                            ], style={'width':'30em'})],        
-                        style={'margin-top':'1em', 'margin-bottom': '1em'}   
+                            ], style={'width':'100%'})],         
                         ),                     
                             
-                        html.H3('Selection')
-                        # html.Div(children=[
-                        #     dcc.Checklist(
-                        #         options= [{'label': 'Mark recording for download', 'value': 'mark'}],
-                        #         value =['mark']
-                        #     )],
-                        # style={'margin-bottom':'1em'})
+                        html.H3('Selection'),
+                        html.Div(children=[
+                            dcc.Checklist(
+                                options= [{'label': 'Mark recording for download', 'value': ''}],
+                                value =['']
+                            ),
+                            html.Button('Download marked', id='download-button-all'),
+                            html.Button('Download this', id='download-button')])
                          
                     ], className='sac'
                 )
         ], className ='plot_wrapper'
-        ),
-
-
-# Download stuff
-html.Div(children=[
-            html.Button('Download', id='download-button'),  
-        ],  className = 'downloadstuff'
-    )
-])
+        )    ])
 
 # ------------ CALLBACKS --------------
 # Stat plot
@@ -214,8 +208,10 @@ def update_figure_stat(selected_sensor, selected_component, stat_quantity):
                             data=[
                                 go.Scatter(x=np.arange(len(statistics['recording'])), y=statistics['sensor'][selected_sensor][stat_quantity][:,componentix], hovertext=files)
                                 ],
-                            layout = go.Layout(xaxis={'title': 'Recording number'},  yaxis={'tickformat': '.1e'}, height=400)
+                            layout = go.Layout(xaxis={'title': 'Recording number'},  yaxis={'tickformat': '.1e'})
                         )
+    figout.update_layout(height=300, margin=dict(l=0,r=0,t=20,b=0))
+    
     return figout
 
 # Sensor data plot
@@ -241,7 +237,7 @@ def update_figure(selected_sensor, selected_component, selected_file, detrend_st
         tot_path = dash_recpath + selected_file
     
         
-    recording = pybd.loadrec(tot_path, output_format='struct')
+    recording = data_import.loadrec(tot_path, output_format='struct')
     componentix = statistics['sensor'][selected_sensor]['component_names'].index(selected_component)
 
     try:
@@ -265,6 +261,8 @@ def update_figure(selected_sensor, selected_component, selected_file, detrend_st
                     ],
                     layout = layout
                     )
+        figout.update_layout(height=300, margin=dict(l=0,r=0,t=20,b=0))
+        
     except:
         figout = go.Figure(data=[go.Scatter(x=None, y=None)])
 
@@ -313,24 +311,12 @@ def update_component_dropdown_stat(selected_sensor):
     updated_component_options = [{'label':name, 'value':name} for name in statistics['sensor'][selected_sensor]['component_names']]
     return updated_component_options
 
-# @app.callback(
-#     dash.dependencies.Output('download-button', 'children'),
-#     [dash.dependencies.Input('file-dropdown', 'value')]
-# def update_output(filename):
-#     return 'The input value was "{}" and the button has been clicked {} times'.format(
-#         value,
-#         n_clicks
-#     )
-#  download_path.format(filename=download_path)
-
 # ----------- SERVE CSS --------------
 @app.server.route('/static/<recpath>')
 def static_file(recpath):
     static_folder = os.path.join(os.getcwd(), 'static')
     return send_from_directory(static_folder, recpath)
     
-app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
-
 # ------------ RUN SERVER -------------
 if __name__ == '__main__':
     app.run_server(debug=True)
