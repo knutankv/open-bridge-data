@@ -2,6 +2,8 @@ import numpy as np
 import scipy.io as sio
 from collections import namedtuple
 import pandas as pd
+import datetime
+from .misc import create_sensor_dict
 
 def avoid_ugly(arr):
     if arr.size is 1:
@@ -72,3 +74,103 @@ def loadrec(path, output_format='dataframe', name='recording'):
         raise ValueError('No valid output_format is given. Valid options are "dict", "df", and "struct"')
 
     return recording
+
+
+def export_from_multirec_hdf(hf, rec_names, **kwargs):
+
+    if rec_names == 'all':
+        rec_names = list(hf.keys())
+        
+    df_full = pd.DataFrame()
+    
+    for rec_name in rec_names:
+        df = export_from_hdf(hf[rec_name], return_as='dataframe', **kwargs)
+
+        if 't' in df:
+            df['t'] = pd.to_datetime(hf[rec_name].attrs['starttime']) + pd.to_timedelta(df['t'], unit='s')
+            
+        df_full = df_full.append(df)
+
+    if 't' in df:
+        df_full = df_full.set_index('t')
+        
+    return df_full
+        
+def export_from_hdf(hf, component_dict=None, 
+                    lookup_sensor_groups=True,
+                    return_as='dataframe', decimation_factor=1):
+    
+    ds = decimation_factor
+    
+    def get_valid_components():
+        if lookup_sensor_groups:
+            check_val = sensor_group + ''
+        else:
+            check_val = sensor + ''
+      
+        if type(component_dict) is dict:
+            if check_val in component_dict:
+                return list(component_dict[check_val])
+            else:
+                return []
+        elif component_dict is None:
+            return components
+        else:
+            raise ValueError('Wrong format. Use None or dict as input for sensors_and_components.')
+    
+    sensor_data = dict()
+    sensor_groups = list(hf.keys())
+    for sensor_group in sensor_groups:
+        sensors_in_group = list(hf[sensor_group].keys())
+
+        for sensor in sensors_in_group:
+            components = list(hf[sensor_group][sensor].keys())
+
+            for c in get_valid_components():
+                sc = f'{sensor}_{c}'
+                sensor_data[sc] = hf[sensor_group][sensor][c][::ds]
+    
+    if 'samplerate' in hf.attrs: #global sample rate
+        sensor1 = list(sensor_data.keys())[0]  
+        sensor_data['t'] = np.linspace(0, hf.attrs['duration'], len(sensor_data[sensor1]))
+    
+    if return_as == 'array':
+        return np.vstack(list(sensor_data.values())).T, list(sensor_data.keys())
+    elif return_as == 'dataframe':
+        return pd.DataFrame.from_dict(sensor_data)
+    elif return_as == 'dict':
+        return sensor_data
+    else:
+        raise ValueError('Use "array", "dataframe" or "dict" as value for return_as')
+
+
+
+def get_stats(hf_recording, fields=['std', 'mean']):
+    sensor_dict = create_sensor_dict(hf_recording)
+    stats = dict()
+    
+    sensor_groups = list(hf_recording.keys())
+    
+    for s in sensor_dict.keys():
+        sensor = hf_recording[sensor_dict[s]][s]
+        stats[s] = dict()
+        components = list(sensor.keys())
+
+        for c in components:
+            component = sensor[c]
+            stats[s][c] = dict()
+            for field in fields:
+                stats[s][c][field] = component.attrs[field]
+    
+    return stats
+
+def get_stats_multi(hf, rec_names=None):
+    if rec_names is None:
+        rec_names = list(hf.keys())
+    
+    stats = dict()
+    for rec_name in rec_names:
+        stats[rec_name] = get_stats(hf[rec_name])
+        
+        
+    return stats
