@@ -4,11 +4,24 @@ from collections import namedtuple
 import pandas as pd
 import datetime
 from .misc import create_sensor_dict
+import h5py
+
+
+def get_all_comp(obj):
+    keys = ()
+    if isinstance(obj, h5py.Group):
+        for key, value in obj.items():
+            if isinstance(value, h5py.Group):
+                keys = keys + get_all_comp(value)
+            else:
+                keys = keys + (value.name,)
+    return keys
+
 
 def avoid_ugly(arr):
     if arr.size is 1:
         arr = arr.flatten()[0]
-#    elif arr.
+
     elif arr.dtype.name == 'object':
         value = []
         
@@ -144,6 +157,29 @@ def export_from_hdf(hf, component_dict=None,
         raise ValueError('Use "array", "dataframe" or "dict" as value for return_as')
 
 
+def convert_stats(stats_dict, sensor_dict=None, fields=['mean', 'std']):
+    stats_df = {field: pd.DataFrame(stats_dict['recording'], 
+                                    columns=['recording']) for field in fields}
+
+    for sensor_name in stats_dict['sensor']:
+        sensor_data = stats_dict['sensor'][sensor_name]
+        
+        if sensor_dict:
+            sensor_group = f'{sensor_dict[sensor_name]}/'
+        else:
+            sensor_group = ''
+            
+        for comp_ix, comp_name in enumerate(sensor_data['component_names']):
+            col_name = f'{sensor_group}{sensor_name}/{comp_name}'
+            
+            for field in fields:   
+                stats_df[field][col_name] = sensor_data[field][:,comp_ix]
+              
+    for field in fields:
+        stats_df[field] = stats_df[field].set_index('recording')
+    
+    return stats_df
+
 
 def get_stats(hf_recording, fields=['std', 'mean']):
     sensor_dict = create_sensor_dict(hf_recording)
@@ -164,13 +200,27 @@ def get_stats(hf_recording, fields=['std', 'mean']):
     
     return stats
 
-def get_stats_multi(hf, rec_names=None):
+
+def get_stats_multi(hf, fields=['mean', 'std'], rec_names=None, avoid=['.global_stats']):
     if rec_names is None:
         rec_names = list(hf.keys())
-    
-    stats = dict()
-    for rec_name in rec_names:
-        stats[rec_name] = get_stats(hf[rec_name])
         
+    for el in list(avoid):
+        rec_names.remove(el)
+
+    stats_df = dict()
+    for field in fields:
+        stats_df[field] = pd.DataFrame(rec_names, columns=['recording'])
         
-    return stats
+    for ix, rec_name in enumerate(rec_names):        
+        for sensor_group in hf[rec_name]:      
+            for sensor in hf[f'{rec_name}/{sensor_group}'].keys():
+                for comp in hf[f'{rec_name}/{sensor_group}/{sensor}'].keys():
+                    col_name = f'{sensor_group}/{sensor}/{comp}'
+                    for field in fields:             
+                        stats_df[field].at[ix, col_name] = hf[f'{rec_name}/{sensor_group}/{sensor}/{comp}'].attrs[field]
+               
+    for field in fields:
+        stats_df[field] = stats_df[field].set_index('recording')
+        
+    return stats_df
