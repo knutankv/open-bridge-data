@@ -12,6 +12,86 @@ from flask import send_from_directory
 from scipy import signal
 import requests
 import h5py
+import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+
+def plot_sensors(hf_rec, view_axis=None, sensor_type_symbols=None, sensor_type_colors=None, coordinate_field_name='position', fig=None):
+    sensor_types = list(hf_rec.keys())
+    
+    if fig is None:
+        fig = go.Figure(
+            data=[],
+            layout=go.Layout(
+                title=go.layout.Title(text=f'Sensor layout, {hf_rec.attrs["name"]}')
+                )
+            )
+    
+    if sensor_type_symbols is None:
+        standard_markers = ['circle', 'cross', 'diamond', 'square', 'x']
+        sensor_type_symbols = dict(zip(sensor_types, standard_markers))
+        
+    if sensor_type_colors is None:
+        standard_colors = ['r', 'b', 'g', 'm', 'gray', 'k']
+        sensor_type_colors = dict(zip(sensor_types, standard_colors))
+    
+    traces = []
+    for s_type in sensor_types:
+        coors = []
+        sensors = list(hf_rec[s_type].keys())
+        for s in sensors:
+            coors.append(hf_rec[s_type][s].attrs[coordinate_field_name][0])
+            
+        coors = np.vstack(coors)
+        
+        ht = '<b>%{text}<\b>  Position: (%{x}, %{y}, %{z})'
+        
+        traces.append(
+            go.Scatter3d(x=coors[:,0], y=coors[:,1], z=coors[:,2], mode='markers', 
+                         name=s_type, text=sensors, hovertemplate=ht))
+        
+    fig.add_traces(traces)    
+
+    if view_axis is not None:
+        vals_eye = [0,0,0]
+        vals_up = [0,1,0]   #needs adjustment fikses
+        vals_eye[view_axis] = 2.5
+        camera = dict(eye=dict(zip(['x', 'y', 'z'], vals_eye)),
+                      up=dict(zip(['x', 'y', 'z'], vals_up)))
+    else:
+        camera = None
+    
+    fig.update_layout(scene_aspectmode='data', scene_aspectratio=dict(x=1, y=1, z=1),
+                      scene_camera=camera)
+    
+    for i,d in enumerate(fig.data):
+        fig.data[i].marker.symbol = sensor_type_symbols[fig.data[i].name]
+            
+    return fig
+
+def plot_sensors_2d(hf_rec, axes=[0,1], sensor_type_symbols=None, sensor_type_colors=None, coordinate_field_name='position', ax=None):
+    sensor_types = list(hf_rec.keys())
+    
+    if sensor_type_symbols is None:
+        standard_markers = ['o', '+', '^', 'd', 'v', 'x']
+        sensor_type_symbols = dict(zip(sensor_types, standard_markers))
+        
+    if sensor_type_colors is None:
+        standard_colors = ['r', 'b', 'g', 'm', 'gray', 'k']
+        sensor_type_colors = dict(zip(sensor_types, standard_colors))
+    
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    for s_type in sensor_types:
+        for s in hf_rec[s_type]:
+            coors = hf_rec[s_type][s].attrs[coordinate_field_name][0]
+            ax.plot(coors[axes[0]], coors[axes[1]], linestyle=None, 
+                    color=sensor_type_colors[s_type], marker=sensor_type_symbols[s_type], 
+                    label=f'{s_type}: {s}')
+    ax.axis('equal')
+    ax.legend()
+    
+    return ax
 
 def temp_download(url, save_path):
         r = requests.get(url)
@@ -21,22 +101,20 @@ def temp_download(url, save_path):
 class AppSetup:
     def __init__(self, data_path,
                 logo_path=None,
-                stylesheet_path=None):
+                stylesheet_path='github'):
         
         self.data_path = data_path
         self.logo_path = logo_path
         self.stylesheet_path = stylesheet_path 
         self.hf = h5py.File(data_path, 'r')
-
+        
+        
+        if self.stylesheet_path == 'github':
+            self.stylesheet_path = 'https://knutankv.github.io/open-bridge-data/static/style.css'
+        
     def create_app(self):
         # ------------ INITIALIZE LAYOUT ------------
         app = dash.Dash(__name__)
-        
-        if self.stylesheet_path:
-            app.css.config.serve_locally = True
-        else:
-            app.css.config.serve_locally = False
-            self.stylesheet_path = 'https://codepen.io/chriddyp/pen/bWLwgP.css'
 
         global_stats = self.hf['.global_stats']
         rec_names = [a.decode() for a in  global_stats['rec_names'][()]]
@@ -213,7 +291,17 @@ class AppSetup:
                             ], className='sac'
                         )
                 ], className ='plot_wrapper'
-                )    ])
+                ),
+                
+                # Sensor plot
+                html.Div(children=[
+                    dcc.Graph(
+                        id = 'sensor-plot',
+                        figure = plot_sensors(self.hf[rec_names[0]])
+                    ),
+                ], className ='plot_wrapper'
+                ),
+                ])
 
         # ------------ CALLBACKS --------------
         # Stat plot
@@ -243,6 +331,15 @@ class AppSetup:
             
             return figout
 
+
+        # Update sensor plot
+        @app.callback(
+            dash.dependencies.Output('sensor-plot', 'figure'),        # output from next function
+            [dash.dependencies.Input('file-dropdown', 'value')])      # specified input given to next function
+
+        def update_figure(selected_file):
+            return plot_sensors(self.hf[selected_file])
+           
         # Sensor data plot
         @app.callback(
             dash.dependencies.Output('sensor-data-plot', 'figure'),        # output from next function
