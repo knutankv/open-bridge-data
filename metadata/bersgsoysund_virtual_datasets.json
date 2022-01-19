@@ -1,0 +1,22 @@
+{
+    "wave_radars": {
+        "h5_path": "/{recording}/wave_radars/*/",
+        "sensors": [],
+        "root_level": "recording",
+        "components": ["h"]
+        },
+        
+    "all_sensor_data": {
+        "h5_path": "/{recording}/*/*/*",
+        "sensors": [],
+        "root_level": "recording",
+        "components": []
+        },   
+        
+     "all_pont4_data": {
+        "h5_path": "/*/accelerometers/{sensor}/",
+        "sensors": ["4S", "4N"],
+        "root_level": "root",
+        "components": ["h"]
+        },   
+}
