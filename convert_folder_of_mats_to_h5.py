@@ -1,4 +1,4 @@
-from opyndata.data_import import loadrec, convert_stats
+from opyndata.data_import import load_matlab_rec as loadrec, convert_stats
 from opyndata.misc import datenum_to_datetime, create_sensor_dict_from_groups
 import h5py
 import glob
@@ -12,21 +12,21 @@ def stat_get(field, rec_name, comp_path):
         return np.nan
 
 #%% Initial definitions   
-suffix = '10Hz'
+suffix = '2Hz'
 
 sensor_dict = create_sensor_dict_from_groups({
-    'wave_radars': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 
+    'wave': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 
                     'W1b', 'W2b', 'W3b', 'W4b', 'W5b', 'W6b'],
-    'accelerometers': ['1S', '1N', '2S', '2N', '3S', '3N', '4S', '4N', '5S', 
+    'acceleration': ['1S', '1N', '2S', '2N', '3S', '3N', '4S', '4N', '5S', 
                        '5N', '6S', '6N', '7S', '7N'],
-    'anemometers': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'],
-    'displacement_sensors': ['GNSS']})
+    'wind': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'],
+    'displacement': ['GNSS']})
 
 group_dict = {
-    'Miros SM-140 wave radar': 'wave_radars',
-    'Trimble GNSS RTK': 'displacement_sensors',
-    "'D' resolution triaxial accelerometer": 'accelerometers',
-    'Windmaster Pro + AD wind sensor': 'anemometers'}
+    'Miros SM-140 wave radar': 'wave',
+    'Trimble GNSS RTK': 'displacement',
+    "'D' resolution triaxial accelerometer": 'accelerometer',
+    'Windmaster Pro + AD wind sensor': 'wind'}
 
 with open('./metadata/bergsoysund.json', encoding='utf-8') as f:
     project_data = json.load(f)
