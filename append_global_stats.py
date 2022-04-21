@@ -1,4 +1,4 @@
-from opyndata.data_import import loadrec, get_stats_multi
+from opyndata.data_import import load_matlab_rec as loadrec, get_stats_multi
 from opyndata.misc import datenum_to_datetime, create_sensor_dict, create_sensor_dict_from_groups
 from opyndata.data_import import export_from_hdf, export_from_multirec_hdf, get_stats_multi, get_stats
 
@@ -7,7 +7,8 @@ import glob
 import numpy as np
 import json
 
-fname = 'C:/Users/knutankv/BergsoysundData/data_10Hz.h5'
+# fname = 'C:/Users/knutankv/BergsoysundData/data_10Hz.h5'
+fname = 'C:/Users/knutankv/GjemnessundData/data_10Hz.h5'
 
 #%% Get all statistics
 with h5py.File(fname, 'a') as hf:

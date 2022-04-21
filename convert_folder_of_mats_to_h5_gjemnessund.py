@@ -12,26 +12,21 @@ def stat_get(field, rec_name, comp_path):
         return np.nan
 
 #%% Initial definitions   
-suffix = '2Hz'
-
+srate = '10Hz'
 sensor_dict = create_sensor_dict_from_groups({
-    'wave': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 
-                    'W1b', 'W2b', 'W3b', 'W4b', 'W5b', 'W6b'],
-    'acceleration': ['1S', '1N', '2S', '2N', '3S', '3N', '4S', '4N', '5S', 
-                       '5N', '6S', '6N', '7S', '7N'],
-    'wind': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'],
-    'displacement': ['GNSS']})
+    'acceleration': ['G5 east', 'G5 west'],
+    'wind': ['G5 wind']})
 
 group_dict = {
-    'Miros SM-140 wave radar': 'wave',
-    'Trimble GNSS RTK': 'displacement',
-    "'D' resolution triaxial accelerometer": 'accelerometer',
-    'Windmaster Pro + AD wind sensor': 'wind'}
+    "'D' resolution triaxial accelerometer": 'acceleration',
+    'Windmaster Pro + AD wind sensor': 'wind',
+    'Windmaster Pro wind sensor': 'wind'}
 
-with open('./metadata/bergsoysund.json', encoding='utf-8') as f:
+with open('./metadata/gjemnessund.json', encoding='utf-8') as f:
     project_data = json.load(f)
     
-project_data['samplerate'] = f'{suffix} (downsampled from 200 Hz)'
+project_data['samplerate'] = f'{srate} (downsampled from 200 Hz)'
+
 component_wise_metadata = {'component_names': None, 
                            'component_data_quality': 'data_quality',
                            'component_units': 'unit'}
@@ -40,21 +35,17 @@ recording_fields = ['duration',  'title']
 
 compression = dict()
 
-rename_sensors = {'GNNS': 'GNSS', 
-                  'P2 S': '2S', 'P2 N': '2N',
-                  'P3 S': '3S', 'P3 N': '3N', 
-                  'P4 S': '4S', 'P4 N': '4N',
-                  'P5 S': '5S', 'P5 N': '5N'}
-
 if len(compression)!=0:
     comp_str = '_compressed'
 else:
     comp_str = ''
     
-file_str = f'C:/Users/knutankv/BergsoysundData/*{suffix}.mat'
+file_str = f'C:/Users/knutankv/GjemnessundData/DataSharing/{srate}/*.mat'
+rename_sensors = {}
 
 #%%
-statistics = loadrec('stats.mat', name='statistics', output_format='dict')
+stat_path = 'C:/Users/knutankv/GjemnessundData/DataSharing/stats_gjemnessund.mat'
+statistics = loadrec(stat_path, name='statistics', output_format='dict')
 statistics_df = convert_stats(statistics, sensor_dict=sensor_dict)
 component_stat_fields = {'std': lambda rec_name, comp_path: stat_get('std', rec_name, comp_path),
                          'mean': lambda rec_name, comp_path: stat_get('mean', rec_name, comp_path)}
@@ -62,7 +53,7 @@ component_stat_fields = {'std': lambda rec_name, comp_path: stat_get('std', rec_
 #%% Find files and define initial groups
 files = glob.glob(file_str)
 
-with h5py.File(f'C:/Users/knutankv/BergsoysundData/data_{suffix}{comp_str}.h5', 'w') as hf:
+with h5py.File(f'C:/Users/knutankv/GjemnessundData/data_{srate}{comp_str}.h5', 'w') as hf:
         
     #% Add global metadata
     for field in project_data:

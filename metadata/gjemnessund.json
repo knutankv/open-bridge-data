@@ -1,0 +1,11 @@
+{
+    "description": "Gjemnessund Bridge monitoring campaign", 
+    "coordinate_system": "Origin at midspan of the bridge, on deck; X tangential to bridge (positive in N direction); Y normal to bridge (positive in W direction); Z vertical (positive upwards).",
+    "geographic_location": "Gjemnes, Møre og Romsdal, Norway",
+    "latitude": 62.97136875847526, 
+    "longitude": 7.779379381660226,
+    "structure_type": "Suspension bridge",
+    "structure_name": "Gjemnessund Bridge", 
+    "samplerate": "10 Hz (downsampled from 200 Hz)",
+    "project_leader": "Professor Ole Øiseth <ole.oiseth@ntnu.no>"        
+}
