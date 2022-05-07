@@ -1,0 +1,11 @@
+{
+    "description": "Hardanger Bridge monitoring campaign", 
+    "coordinate_system": "Origin at midspan of the bridge, on deck; X longitudinal, along the bridge (from Vallavik to Bu); Y transverse to the bridge (towards East); Z vertical (positive upwards).",
+    "geographic_location": "Vestland, Norway",
+    "latitude": 60.47900413145438,
+    "longitude": 6.829798070393762,
+    "structure_type": "Suspension bridge",
+    "structure_name": "Hardanger Bridge", 
+    "samplerate": "10 Hz (downsampled from 200 Hz)",
+    "project_leader": "Professor Ole Øiseth <ole.oiseth@ntnu.no>"        
+}

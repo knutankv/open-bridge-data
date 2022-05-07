@@ -8,7 +8,8 @@ import numpy as np
 import json
 
 # fname = 'C:/Users/knutankv/BergsoysundData/data_10Hz.h5'
-fname = 'C:/Users/knutankv/GjemnessundData/data_10Hz.h5'
+# fname = 'C:/Users/knutankv/GjemnessundData/data_10Hz.h5'
+fname = 'C:/Users/knutankv/HardangerData/data_10Hz.h5'
 
 #%% Get all statistics
 with h5py.File(fname, 'a') as hf:
